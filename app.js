@@ -1,64 +1,128 @@
 let zip;
-let currentFile = null;
 
+const readableExt = [
+  ".java",
+  ".class",
+  ".yml",
+  ".yaml",
+  ".json",
+  ".txt",
+  ".properties"
+];
+
+/* BLOQUEOS DUROS */
+document.addEventListener("contextmenu", e => e.preventDefault());
+document.addEventListener("copy", e => e.preventDefault());
+document.addEventListener("cut", e => e.preventDefault());
+document.addEventListener("paste", e => e.preventDefault());
+document.addEventListener("dragstart", e => e.preventDefault());
+
+document.addEventListener("keydown", e => {
+  if (e.ctrlKey) e.preventDefault();
+});
+
+/* CARGA DEL JAR */
 document.getElementById("jarInput").addEventListener("change", async e => {
   zip = await JSZip.loadAsync(e.target.files[0]);
   renderTree();
 });
 
+/* CONSTRUIR ÁRBOL */
 function renderTree() {
   const tree = document.getElementById("tree");
   tree.innerHTML = "";
 
-  Object.keys(zip.files).forEach(name => {
-    const div = document.createElement("div");
-    div.textContent = name;
-    div.onclick = () => openFile(name);
-    tree.appendChild(div);
+  const root = {};
+
+  Object.keys(zip.files).forEach(path => {
+    const parts = path.split("/");
+    let node = root;
+    parts.forEach(p => {
+      if (!node[p]) node[p] = {};
+      node = node[p];
+    });
   });
+
+  function draw(node, parent, base = "") {
+    for (const name in node) {
+      const full = base + name;
+
+      if (Object.keys(node[name]).length) {
+        const folder = document.createElement("div");
+        folder.textContent = "📁 " + name;
+        folder.className = "folder";
+
+        const sub = document.createElement("div");
+        sub.style.display = "none";
+
+        folder.onclick = () => {
+          sub.style.display = sub.style.display === "none" ? "block" : "none";
+        };
+
+        parent.appendChild(folder);
+        parent.appendChild(sub);
+        draw(node[name], sub, full + "/");
+      } else {
+        const ext = "." + name.split(".").pop();
+        const file = document.createElement("div");
+        file.textContent = "📄 " + name;
+        file.className = "file";
+
+        if (readableExt.includes(ext)) {
+          file.onclick = () => openFile(full);
+        } else {
+          file.classList.add("disabled");
+        }
+
+        parent.appendChild(file);
+      }
+    }
+  }
+
+  draw(root, tree);
 }
 
-async function openFile(name) {
-  currentFile = name;
-  const file = zip.files[name];
+/* ABRIR ARCHIVOS (SOLO LECTURA) */
+async function openFile(path) {
+  const editor = document.getElementById("editor");
+  const ext = "." + path.split(".").pop();
 
-  if (file.dir) return;
-
-  if (name.endsWith(".class")) {
-    const buffer = await file.async("uint8array");
-    document.getElementById("editor").value =
-      Array.from(buffer).map(b => b.toString(16).padStart(2, "0")).join(" ");
+  if (ext === ".class") {
+    const bytes = await zip.files[path].async("uint8array");
+    editor.value = classToReadable(bytes);
   } else {
-    document.getElementById("editor").value =
-      await file.async("string");
+    editor.value = await zip.files[path].async("string");
   }
 }
 
-document.getElementById("saveFile").onclick = () => {
-  if (!currentFile) return;
-  zip.file(currentFile, document.getElementById("editor").value);
-};
+/* CLASS → TEXTO LEGIBLE (INSPECCIÓN) */
+function classToReadable(bytes) {
+  let out = "☕ Java .class (read-only view)\n\n";
+  for (let i = 0; i < bytes.length; i += 16) {
+    out += Array.from(bytes.slice(i, i + 16))
+      .map(b => b.toString(16).padStart(2, "0"))
+      .join(" ") + "\n";
+  }
+  return out;
+}
 
-document.getElementById("downloadJar").onclick = async () => {
-  const blob = await zip.generateAsync({ type: "blob" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "modificado.jar";
-  a.click();
-};
-
-document.getElementById("applyStrings").onclick = () => {
+/* STRING VIEWER */
+document.getElementById("searchBtn").onclick = async () => {
   const search = document.getElementById("searchStr").value;
-  const replace = document.getElementById("replaceStr").value;
+  const res = document.getElementById("stringResults");
+  res.innerHTML = "";
 
-  Object.keys(zip.files).forEach(async name => {
-    if (name.endsWith(".class") || zip.files[name].dir) return;
+  for (const name in zip.files) {
+    if (zip.files[name].dir) continue;
 
-    let content = await zip.files[name].async("string");
-    if (content.includes(search)) {
-      zip.file(name, content.replaceAll(search, replace));
+    const ext = "." + name.split(".").pop();
+    if (!readableExt.includes(ext) || ext === ".class") continue;
+
+    const content = await zip.files[name].async("string");
+    if (!search || content.includes(search)) {
+      const div = document.createElement("div");
+      div.textContent = name;
+      res.appendChild(div);
     }
-  });
-
-  alert("Strings aplicados");
+  }
 };
