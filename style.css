@@ -18,10 +18,11 @@ h1 {
 }
 
 #tree {
-  flex: 1;
+  flex: 0 0 300px;  /* árbol más pequeño a la izquierda */
   background: #2e2e2e;
   padding: 10px;
   overflow-y: auto;
+  border-right: 2px solid #555;
 }
 
 .file {
@@ -34,11 +35,12 @@ h1 {
 }
 
 textarea#editor {
-  flex: 2;
+  flex: 1;           /* ocupa el resto del espacio */
   background: #1e1e1e;
   color: #fff;
   border: 1px solid #555;
   resize: none;
   padding: 10px;
   overflow-y: auto;
+  font-size: 14px;
 }
