@@ -5,8 +5,9 @@ let currentPath = null;
 
 const tree = document.getElementById("tree");
 const editor = document.getElementById("editor");
+const title = document.getElementById("title");
 
-document.getElementById("jar").onchange = async e => {
+document.getElementById("jarInput").addEventListener("change", async e => {
   zip = await JSZip.loadAsync(e.target.files[0]);
   files = {};
   tree.innerHTML = "";
@@ -16,14 +17,16 @@ document.getElementById("jar").onchange = async e => {
       files[p] = await zip.files[p].async("uint8array");
     }
   }
+
   buildTree();
-};
+});
 
 function buildTree() {
   const root = {};
-  Object.keys(files).forEach(p => {
+
+  Object.keys(files).forEach(path => {
     let cur = root;
-    p.split("/").forEach(part => {
+    path.split("/").forEach(part => {
       cur[part] ??= {};
       cur = cur[part];
     });
@@ -36,42 +39,47 @@ function buildTree() {
 function renderNode(node, parent, base) {
   for (const key in node) {
     const path = base ? base + "/" + key : key;
-    const el = document.createElement("div");
+    const div = document.createElement("div");
 
     if (Object.keys(node[key]).length) {
-      el.textContent = "📁 " + key;
-      el.className = "folder";
-      el.onclick = () => el.nextSibling.classList.toggle("hidden");
-      parent.appendChild(el);
+      div.textContent = "📁 " + key;
+      div.className = "folder";
 
-      const child = document.createElement("div");
-      child.style.paddingLeft = "15px";
-      parent.appendChild(child);
+      const children = document.createElement("div");
+      children.className = "hidden";
+      children.style.paddingLeft = "15px";
 
-      renderNode(node[key], child, path);
+      div.onclick = () => children.classList.toggle("hidden");
+
+      parent.appendChild(div);
+      parent.appendChild(children);
+
+      renderNode(node[key], children, path);
     } else {
-      el.textContent = "📄 " + key;
-      el.className = "file";
-      el.onclick = () => openFile(path);
-      parent.appendChild(el);
+      div.textContent = "📄 " + key;
+      div.className = "file";
+      div.onclick = () => openFile(path);
+      parent.appendChild(div);
     }
   }
 }
 
 function openFile(path) {
   currentPath = path;
-  document.getElementById("title").textContent = path;
+  title.textContent = path;
 
   if (path.endsWith(".class")) {
     const reader = new JavaClassTools.JavaClassFileReader();
     currentClass = reader.read(files[path].buffer);
 
-    const strings = [];
+    const lines = [];
     currentClass.constant_pool.forEach((c, i) => {
-      if (c?.tag === 1) strings.push(`${i}|${c.bytes}`);
+      if (c?.tag === 1) {
+        lines.push(i + "|" + c.bytes);
+      }
     });
 
-    editor.value = strings.join("\n");
+    editor.value = lines.join("\n");
   } else {
     editor.value = new TextDecoder().decode(files[path]);
     currentClass = null;
@@ -79,26 +87,29 @@ function openFile(path) {
 }
 
 document.getElementById("save").onclick = () => {
-  if (!currentClass) return;
+  if (currentClass) {
+    editor.value.split("\n").forEach(line => {
+      const [i, val] = line.split("|");
+      const idx = parseInt(i);
+      if (!isNaN(idx) && currentClass.constant_pool[idx]) {
+        currentClass.constant_pool[idx].bytes = val;
+      }
+    });
 
-  editor.value.split("\n").forEach(line => {
-    const [idx, val] = line.split("|");
-    const i = parseInt(idx);
-    if (!isNaN(i) && currentClass.constant_pool[i]) {
-      currentClass.constant_pool[i].bytes = val;
-    }
-  });
-
-  const writer = new JavaClassTools.JavaClassFileWriter();
-  files[currentPath] = new Uint8Array(writer.write(currentClass));
-  alert("✔ Strings del .class parcheados");
+    const writer = new JavaClassTools.JavaClassFileWriter();
+    files[currentPath] = new Uint8Array(writer.write(currentClass));
+    alert("✔ .class parcheado");
+  } else {
+    files[currentPath] = new TextEncoder().encode(editor.value);
+    alert("✔ archivo guardado");
+  }
 };
 
 document.getElementById("patchAll").onclick = () => {
-  const find = prompt("Buscar string:");
-  const replace = prompt("Reemplazar por:");
+  const find = prompt("Buscar string");
+  const replace = prompt("Reemplazar por");
 
-  if (!find || replace === null) return;
+  if (!find) return;
 
   Object.keys(files).forEach(p => {
     if (!p.endsWith(".class")) return;
@@ -116,14 +127,14 @@ document.getElementById("patchAll").onclick = () => {
     files[p] = new Uint8Array(writer.write(cls));
   });
 
-  alert("✔ Parche global aplicado");
+  alert("✔ parche global aplicado");
 };
 
 document.getElementById("download").onclick = async () => {
   const out = new JSZip();
   for (const p in files) out.file(p, files[p]);
-  const blob = await out.generateAsync({ type:"blob" });
 
+  const blob = await out.generateAsync({ type: "blob" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "plugin_modificado.jar";
