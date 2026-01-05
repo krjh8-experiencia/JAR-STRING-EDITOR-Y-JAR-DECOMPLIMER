@@ -3,16 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <title>JAR Viewer</title>
-  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<h2>Subir .jar</h2>
-<input type="file" id="jarInput" accept=".jar">
+<h2>Subir JAR</h2>
+<input type="file" id="file" accept=".jar">
 
-<div class="container">
-  <div id="tree" class="tree"></div>
-  <pre id="viewer" class="viewer">Seleccioná un archivo</pre>
+<div style="display:flex; gap:20px">
+  <div id="tree" style="width:30%; border:1px solid #ccc; padding:10px"></div>
+  <pre id="view" style="width:70%; border:1px solid #ccc; padding:10px"></pre>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
