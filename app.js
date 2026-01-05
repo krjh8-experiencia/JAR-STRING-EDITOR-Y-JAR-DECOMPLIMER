@@ -9,7 +9,6 @@ document.addEventListener("DOMContentLoaded", () => {
   let zip = null;
   let currentPath = null;
 
-  // Convertir paths planos a árbol jerárquico
   function makeTree(paths) {
     const root = {};
     paths.forEach(path => {
@@ -29,24 +28,24 @@ document.addEventListener("DOMContentLoaded", () => {
     return root;
   }
 
-  // Renderizar árbol de forma recursiva
   function renderTree(node, parentEl) {
     Object.keys(node).forEach(key => {
       if (["_children", "_fullPath", "_isDir"].includes(key)) return;
       const data = node[key];
 
       const div = document.createElement("div");
-      div.textContent = key;
-      div.className = data._isDir ? "folder" : "file";
-      if (!data._isDir && key.endsWith(".class")) div.style.fontSize = "12px";
       div.style.paddingLeft = "10px";
+      div.style.cursor = "pointer";
       div.dataset.expanded = false;
-      parentEl.appendChild(div);
 
       if (data._isDir) {
+        div.textContent = "📁 " + key;
+        div.className = "folder";
+
         const childrenContainer = document.createElement("div");
         childrenContainer.style.display = "none";
         childrenContainer.style.paddingLeft = "15px";
+        parentEl.appendChild(div);
         parentEl.appendChild(childrenContainer);
 
         div.onclick = () => {
@@ -57,6 +56,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         renderTree(data._children, childrenContainer);
       } else {
+        div.textContent = "📄 " + key;
+        div.className = "file";
+        if (key.endsWith(".class")) div.style.fontSize = "12px";
         div.onclick = async () => {
           currentPath = data._fullPath;
           const entry = zip.files[currentPath];
@@ -87,6 +89,7 @@ ${strings.slice(0, 50).join("\n")}
             editor.disabled = false;
           }
         };
+        parentEl.appendChild(div);
       }
     });
   }
@@ -102,7 +105,6 @@ ${strings.slice(0, 50).join("\n")}
     editor.value = "";
     currentPath = null;
 
-    // Orden: todo menos .yml / .yaml primero, luego yml
     const paths = Object.keys(zip.files).sort((a, b) => {
       const aYml = a.endsWith(".yml") || a.endsWith(".yaml");
       const bYml = b.endsWith(".yml") || b.endsWith(".yaml");
@@ -114,7 +116,7 @@ ${strings.slice(0, 50).join("\n")}
     const treeData = makeTree(paths);
     renderTree(treeData, tree);
 
-    console.log("🌳 Árbol jerárquico generado correctamente");
+    console.log("🌳 Árbol jerárquico con iconos generado");
   });
 
   downloadBtn.addEventListener("click", async () => {
