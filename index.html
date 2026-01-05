@@ -1,15 +1,38 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-  <meta charset="utf-8">
-  <title>Jar Viewer PRO</title>
-  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
+<meta charset="UTF-8">
+<title>Jar Class Editor</title>
+
+<link rel="stylesheet" href="style.css">
+
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/java-class-tools/dist/java-class-tools.min.js"></script>
 </head>
+
 <body>
 
-<input type="file" id="jar">
-<div id="tree"></div>
-<div id="editor" style="height:80vh;"></div>
+<h2>Jar Class Editor (GitHub Pages)</h2>
+
+<input type="file" id="jarInput" accept=".jar">
+
+<div id="layout">
+
+  <div id="tree"></div>
+
+  <div id="panel">
+    <div id="title">Seleccioná un archivo</div>
+    <textarea id="editor"></textarea>
+
+    <div class="buttons">
+      <button id="save">Guardar archivo</button>
+      <button id="patchAll">Parchear string global</button>
+    </div>
+  </div>
+
+</div>
+
+<button id="download">⬇ Descargar Plugin Modificado</button>
 
 <script src="app.js"></script>
 </body>
