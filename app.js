@@ -90,7 +90,7 @@ document.addEventListener("DOMContentLoaded", () => {
 Strings detectadas (primeros 50):
 ${strings.slice(0, 50).join("\n")}
 `;
-            editor.disabled = true;
+            editor.disabled = false;
           } else {
             const text = await entry.async("string");
             editor.value = text;
