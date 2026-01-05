@@ -1,75 +1,72 @@
+console.log("JS CARGADO OK");
 
-document.addEventListener("DOMContentLoaded", () => {
-  console.log("DOM CARGADO");
+const fileInput = document.getElementById("fileInput");
+const tree = document.getElementById("tree");
+const editor = document.getElementById("editor");
+const downloadBtn = document.getElementById("downloadBtn");
 
-  const input = document.getElementById("file");
-  const tree = document.getElementById("tree");
-  const view = document.getElementById("view");
+let zip = null;
+let currentPath = null;
 
-  console.log("Input:", input);
+fileInput.addEventListener("change", async () => {
+  const file = fileInput.files[0];
+  if (!file) return;
 
-  if (!input) {
-    console.error("❌ NO EXISTE el input con id='file'");
-    return;
-  }
+  zip = await JSZip.loadAsync(file);
+  tree.innerHTML = "";
+  editor.value = "";
+  currentPath = null;
 
-  input.addEventListener("change", async () => {
-    const file = input.files[0];
-    if (!file) return;
+  Object.keys(zip.files).forEach(path => {
+    const div = document.createElement("div");
+    div.className = "file";
+    div.textContent = path;
 
-    console.log("Archivo seleccionado:", file.name);
+    div.onclick = async () => {
+      const entry = zip.files[path];
+      currentPath = path;
 
-    tree.textContent = "Leyendo JAR...";
-
-    try {
-      const zip = await JSZip.loadAsync(file);
-      const names = Object.keys(zip.files);
-
-      console.log("Archivos en JAR:", names.length);
-
-      tree.innerHTML = "";
-
-      for (const name of names) {
-        const entry = zip.files[name];
-
-        const div = document.createElement("div");
-        div.textContent = entry.dir ? "📁 " + name : "📄 " + name;
-
-        if (!entry.dir) {
-          div.style.cursor = "pointer";
-          div.onclick = async () => {
-            const data = await entry.async("uint8array");
-
-            if (name.endsWith(".class")) {
-              view.textContent = mostrarStrings(data);
-            } else {
-              view.textContent = new TextDecoder().decode(data);
-            }
-          };
-        }
-
-        tree.appendChild(div);
+      if (entry.dir) {
+        editor.value = "// Carpeta";
+        editor.disabled = true;
+        return;
       }
 
-    } catch (err) {
-      console.error("ERROR leyendo JAR:", err);
-      tree.textContent = "❌ Error leyendo JAR (ver consola)";
-    }
+      // .class → hex / info
+      if (path.endsWith(".class")) {
+        const data = await entry.async("uint8array");
+        editor.value =
+          "Archivo .class\n" +
+          "Tamaño: " + data.length + " bytes\n\n" +
+          "HEX:\n" +
+          Array.from(data)
+            .slice(0, 500)
+            .map(b => b.toString(16).padStart(2, "0"))
+            .join(" ");
+        editor.disabled = true;
+        return;
+      }
+
+      // Texto editable
+      const text = await entry.async("string");
+      editor.value = text;
+      editor.disabled = false;
+    };
+
+    tree.appendChild(div);
   });
 });
 
-function mostrarStrings(bytes) {
-  let out = "CLASS FILE\n\nStrings detectados:\n\n";
-  let temp = "";
+downloadBtn.addEventListener("click", async () => {
+  if (!zip) return alert("No hay archivo cargado");
 
-  for (const b of bytes) {
-    if (b >= 32 && b <= 126) {
-      temp += String.fromCharCode(b);
-    } else {
-      if (temp.length > 4) out += temp + "\n";
-      temp = "";
-    }
+  if (currentPath && !currentPath.endsWith(".class")) {
+    zip.file(currentPath, editor.value);
   }
 
-  return out;
-}
+  const blob = await zip.generateAsync({ type: "blob" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "plugin_modificado.jar";
+  a.click();
+});
