@@ -1,81 +1,52 @@
-const input = document.getElementById("jarInput");
-const treeDiv = document.getElementById("tree");
-const viewer = document.getElementById("viewer");
+const input = document.getElementById("file");
+const tree = document.getElementById("tree");
+const view = document.getElementById("view");
 
-input.addEventListener("change", async (e) => {
-  const file = e.target.files[0];
+console.log("JS cargado");
+
+input.addEventListener("change", async () => {
+  const file = input.files[0];
   if (!file) return;
 
-  treeDiv.innerHTML = "Cargando...";
+  console.log("Archivo:", file.name);
+
   const zip = await JSZip.loadAsync(file);
-  treeDiv.innerHTML = "";
+  tree.innerHTML = "";
 
-  const tree = {};
+  for (const name in zip.files) {
+    const entry = zip.files[name];
 
-  // construir árbol
-  zip.forEach((path, entry) => {
-    const parts = path.split("/");
-    let current = tree;
-    for (const part of parts) {
-      if (!current[part]) current[part] = {};
-      current = current[part];
-    }
-    current.__entry = entry;
-  });
-
-  renderTree(tree, treeDiv);
-});
-
-function renderTree(node, parent) {
-  for (const name in node) {
-    if (name === "__entry") continue;
-
-    const entry = node[name].__entry;
     const div = document.createElement("div");
+    div.textContent = entry.dir ? "📁 " + name : name;
 
-    if (entry && !entry.dir) {
-      div.textContent = name;
-      div.className = "file";
+    if (!entry.dir) {
+      div.style.cursor = "pointer";
       div.onclick = async () => {
         const data = await entry.async("uint8array");
 
         if (name.endsWith(".class")) {
-          viewer.textContent = showClassInfo(data);
+          view.textContent = mostrarStrings(data);
         } else {
-          viewer.textContent = new TextDecoder().decode(data);
+          view.textContent = new TextDecoder().decode(data);
         }
       };
-    } else {
-      div.textContent = "📁 " + name;
-      div.className = "folder";
-      const child = document.createElement("div");
-      child.style.display = "none";
-      div.onclick = () => {
-        child.style.display = child.style.display === "none" ? "block" : "none";
-      };
-      parent.appendChild(div);
-      renderTree(node[name], child);
-      parent.appendChild(child);
-      continue;
     }
 
-    parent.appendChild(div);
+    tree.appendChild(div);
   }
-}
+});
 
-function showClassInfo(bytes) {
-  let text = "CLASS FILE\n\n";
-  text += "Tamaño: " + bytes.length + " bytes\n\n";
-  text += "Strings detectados:\n\n";
+function mostrarStrings(bytes) {
+  let out = "CLASS FILE\n\nStrings detectados:\n\n";
+  let s = "";
 
-  let str = "";
-  for (let b of bytes) {
+  for (const b of bytes) {
     if (b >= 32 && b <= 126) {
-      str += String.fromCharCode(b);
+      s += String.fromCharCode(b);
     } else {
-      if (str.length > 4) text += str + "\n";
-      str = "";
+      if (s.length > 4) out += s + "\n";
+      s = "";
     }
   }
-  return text;
+  return out;
 }
