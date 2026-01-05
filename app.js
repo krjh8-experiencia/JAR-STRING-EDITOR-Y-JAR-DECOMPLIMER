@@ -9,43 +9,45 @@ document.addEventListener("DOMContentLoaded", () => {
   let zip = null;
   let currentPath = null;
 
-  // Crear nodo del árbol
-  function createNode(name, isDir) {
-    const div = document.createElement("div");
-    div.textContent = name;
-    div.className = isDir ? "folder" : "file";
-    if (!isDir && name.endsWith(".class")) div.style.fontSize = "12px";
-    div.style.paddingLeft = "10px";
-    div.dataset.expanded = false;
-    return div;
-  }
-
-  // Construir árbol jerárquico recursivo
-  function buildTree(paths) {
+  // Convertir paths planos a árbol jerárquico
+  function makeTree(paths) {
     const root = {};
-    paths.forEach(p => {
-      const parts = p.split("/");
+    paths.forEach(path => {
+      const parts = path.split("/");
       let node = root;
       parts.forEach((part, idx) => {
-        if (!node[part]) node[part] = { _children: {}, _fullPath: parts.slice(0, idx+1).join("/"), _isDir: idx < parts.length-1 };
+        if (!node[part]) {
+          node[part] = {
+            _children: {},
+            _fullPath: parts.slice(0, idx + 1).join("/"),
+            _isDir: idx < parts.length - 1
+          };
+        }
         node = node[part]._children;
       });
     });
     return root;
   }
 
-  function renderTree(node, parentElement) {
+  // Renderizar árbol de forma recursiva
+  function renderTree(node, parentEl) {
     Object.keys(node).forEach(key => {
-      if (key === "_children" || key === "_isDir" || key === "_fullPath") return;
+      if (["_children", "_fullPath", "_isDir"].includes(key)) return;
       const data = node[key];
-      const div = createNode(key, data._isDir);
-      parentElement.appendChild(div);
+
+      const div = document.createElement("div");
+      div.textContent = key;
+      div.className = data._isDir ? "folder" : "file";
+      if (!data._isDir && key.endsWith(".class")) div.style.fontSize = "12px";
+      div.style.paddingLeft = "10px";
+      div.dataset.expanded = false;
+      parentEl.appendChild(div);
 
       if (data._isDir) {
         const childrenContainer = document.createElement("div");
         childrenContainer.style.display = "none";
         childrenContainer.style.paddingLeft = "15px";
-        parentElement.appendChild(childrenContainer);
+        parentEl.appendChild(childrenContainer);
 
         div.onclick = () => {
           const expanded = div.dataset.expanded === "true";
@@ -67,16 +69,16 @@ document.addEventListener("DOMContentLoaded", () => {
             for (let b of dataArr) {
               if (b >= 32 && b <= 126) cur += String.fromCharCode(b);
               else {
-                if(cur.length>=4) strings.push(cur);
-                cur="";
+                if (cur.length >= 4) strings.push(cur);
+                cur = "";
               }
             }
-            if(cur.length>=4) strings.push(cur);
+            if (cur.length >= 4) strings.push(cur);
             editor.value =
 `// Decompiled (.class) — READ ONLY
 
-Strings detected (primeros 50):
-${strings.slice(0,50).join("\n")}
+Strings detectadas (primeros 50):
+${strings.slice(0, 50).join("\n")}
 `;
             editor.disabled = true;
           } else {
@@ -101,18 +103,18 @@ ${strings.slice(0,50).join("\n")}
     currentPath = null;
 
     // Orden: todo menos .yml / .yaml primero, luego yml
-    const paths = Object.keys(zip.files).sort((a,b)=>{
+    const paths = Object.keys(zip.files).sort((a, b) => {
       const aYml = a.endsWith(".yml") || a.endsWith(".yaml");
       const bYml = b.endsWith(".yml") || b.endsWith(".yaml");
-      if(aYml && !bYml) return 1;
-      if(!aYml && bYml) return -1;
+      if (aYml && !bYml) return 1;
+      if (!aYml && bYml) return -1;
       return a.localeCompare(b);
     });
 
-    const treeData = buildTree(paths);
+    const treeData = makeTree(paths);
     renderTree(treeData, tree);
 
-    console.log("🌳 Árbol jerárquico generado");
+    console.log("🌳 Árbol jerárquico generado correctamente");
   });
 
   downloadBtn.addEventListener("click", async () => {
