@@ -13,17 +13,23 @@ h1 {
   margin: 10px 0;
 }
 
-#container {
+#topbar {
   display: flex;
-  height: calc(100% - 60px); /* altura total de la pantalla menos el h1 y botones */
-  gap: 10px;
-  padding: 10px;
-  box-sizing: border-box;
+  justify-content: space-between;
+  padding: 0 10px;
+  margin-bottom: 10px;
 }
 
-/* Árbol a la izquierda */
+#container {
+  display: flex;
+  flex-direction: row;      /* horizontal */
+  height: calc(100% - 60px); /* restando h1 + topbar */
+  gap: 10px;
+}
+
+/* Árbol de archivos */
 #tree {
-  flex: 0 0 300px;  /* ancho fijo */
+  flex: 0 0 300px;   /* ancho fijo */
   background: #2e2e2e;
   padding: 10px;
   overflow-y: auto;
@@ -31,7 +37,7 @@ h1 {
   height: 100%;
 }
 
-/* Archivos en el árbol */
+/* Cada archivo */
 .file {
   cursor: pointer;
   padding: 4px 6px;
@@ -41,7 +47,7 @@ h1 {
   background: #444;
 }
 
-/* Editor grande a la derecha */
+/* Editor / lectura */
 #editor {
   flex: 1;           /* ocupa todo el ancho restante */
   background: #1e1e1e;
@@ -52,6 +58,6 @@ h1 {
   overflow-y: auto;
   font-size: 16px;
   line-height: 1.4;
-  height: 100%;      /* OJO: ocupa toda la altura del contenedor */
+  height: 100%;
   box-sizing: border-box;
 }
