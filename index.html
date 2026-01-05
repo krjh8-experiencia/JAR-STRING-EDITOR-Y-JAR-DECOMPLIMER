@@ -2,35 +2,35 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Jar Explorer Web</title>
+  <title>Jar / Plugin Inspector</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <header>
-  <h1>☕ Jar Explorer Web</h1>
+  <h2>☕ Jar / Plugin Inspector</h2>
   <input type="file" id="jarInput" accept=".jar">
 </header>
 
-<div id="container">
-  <aside id="tree"></aside>
+<div id="main">
+  <aside id="tree">
+    <div class="hint">📂 Árbol del JAR</div>
+  </aside>
 
-  <main>
-    <textarea id="editor" placeholder="Selecciona un archivo..."></textarea>
-
-    <div class="actions">
-      <button id="saveFile">💾 Guardar archivo</button>
-      <button id="downloadJar">⬇️ Descargar JAR</button>
-    </div>
-
-    <section id="stringEditor">
-      <h3>🔎 String Editor</h3>
-      <input id="searchStr" placeholder="Buscar">
-      <input id="replaceStr" placeholder="Reemplazar">
-      <button id="applyStrings">Aplicar</button>
-    </section>
-  </main>
+  <section id="viewer">
+    <div class="viewer-header">📄 Visor (solo lectura)</div>
+    <textarea id="editor" readonly></textarea>
+  </section>
 </div>
+
+<section id="strings">
+  <h3>🔎 String Viewer</h3>
+
+  <input id="searchStr" placeholder="Buscar string (vacío = todos)">
+  <button id="searchBtn">Buscar</button>
+
+  <div id="stringResults"></div>
+</section>
 
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="app.js"></script>
