@@ -1,11 +1,23 @@
-<input type="file" id="upload">
-<button onclick="download()">Descargar JAR</button>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>JAR Plugin Editor</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <input type="file" id="fileInput" accept=".jar,.zip">
+  <button id="downloadBtn">Descargar Plugin Modificado</button>
+</header>
 
 <div class="layout">
   <div id="tree"></div>
-  <textarea id="editor"></textarea>
+  <textarea id="editor" placeholder="Seleccioná un archivo del árbol"></textarea>
 </div>
 
-<button onclick="save()">Guardar archivo</button>
-
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="app.js"></script>
+</body>
+</html>
