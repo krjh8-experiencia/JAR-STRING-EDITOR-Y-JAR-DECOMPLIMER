@@ -11,8 +11,6 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
-  console.log("✅ Input encontrado");
-
   let zip = null;
   let currentPath = null;
 
@@ -27,7 +25,17 @@ document.addEventListener("DOMContentLoaded", () => {
     editor.value = "";
     currentPath = null;
 
-    Object.keys(zip.files).forEach(path => {
+    // ---------------------------
+    // Orden: todo menos .yml / .yaml primero, luego yml
+    const paths = Object.keys(zip.files).sort((a,b)=>{
+      const aYml = a.endsWith(".yml") || a.endsWith(".yaml");
+      const bYml = b.endsWith(".yml") || b.endsWith(".yaml");
+      if(aYml && !bYml) return 1;
+      if(!aYml && bYml) return -1;
+      return a.localeCompare(b);
+    });
+
+    paths.forEach(path => {
       const div = document.createElement("div");
       div.className = "file";
       div.textContent = path;
@@ -42,20 +50,51 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
 
+        // ------------------- .class pseudo decompiled
         if (path.endsWith(".class")) {
           const data = await entry.async("uint8array");
+
+          // Extraer strings legibles
+          let strings = [];
+          let cur = "";
+          for (let b of data) {
+            if (b >= 32 && b <= 126) cur += String.fromCharCode(b);
+            else {
+              if(cur.length>=4) strings.push(cur);
+              cur="";
+            }
+          }
+          if(cur.length>=4) strings.push(cur);
+
+          const readU16 = i => (data[i]<<8)|data[i+1];
+          const major = readU16(6);
+
+          const className = strings.find(s => s.includes("/") && !s.includes("(")) || "UnknownClass";
+          const methods = strings.filter(s =>
+            /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(s) &&
+            !["Code","LineNumberTable","SourceFile"].includes(s)
+          );
+
           editor.value =
-            "Archivo .class\n" +
-            "Tamaño: " + data.length + " bytes\n\n" +
-            "HEX (primeros bytes):\n" +
-            Array.from(data)
-              .slice(0, 400)
-              .map(b => b.toString(16).padStart(2, "0"))
-              .join(" ");
+`// Decompiled (.class) — READ ONLY
+
+Java version (major): ${major}
+
+Class:
+${className.replace(/\//g, ".")}
+
+Methods detected:
+${[...new Set(methods)].slice(0,30).map(m=>"  - "+m).join("\n")}
+
+Strings:
+${strings.slice(0,50).join("\n")}
+`;
+
           editor.disabled = true;
           return;
         }
 
+        // ------------------- editable
         const text = await entry.async("string");
         editor.value = text;
         editor.disabled = false;
