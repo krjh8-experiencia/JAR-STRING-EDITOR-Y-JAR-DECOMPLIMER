@@ -1,71 +1,75 @@
-const input = document.getElementById("file");
-const tree = document.getElementById("tree");
-const view = document.getElementById("view");
 
-console.log("JS CARGADO OK");
+document.addEventListener("DOMContentLoaded", () => {
+  console.log("DOM CARGADO");
 
-input.addEventListener("change", async () => {
-  const file = input.files[0];
-  if (!file) return;
+  const input = document.getElementById("file");
+  const tree = document.getElementById("tree");
+  const view = document.getElementById("view");
 
-  console.log("Archivo seleccionado:", file.name, file.size);
+  console.log("Input:", input);
 
-  tree.innerHTML = "Leyendo JAR...";
+  if (!input) {
+    console.error("❌ NO EXISTE el input con id='file'");
+    return;
+  }
 
-  try {
-    const zip = await JSZip.loadAsync(file);
-    console.log("ZIP cargado:", Object.keys(zip.files).length, "archivos");
+  input.addEventListener("change", async () => {
+    const file = input.files[0];
+    if (!file) return;
 
-    tree.innerHTML = "";
+    console.log("Archivo seleccionado:", file.name);
 
-    let count = 0;
+    tree.textContent = "Leyendo JAR...";
 
-    for (const name in zip.files) {
-      count++;
-      const entry = zip.files[name];
+    try {
+      const zip = await JSZip.loadAsync(file);
+      const names = Object.keys(zip.files);
 
-      const div = document.createElement("div");
-      div.textContent = entry.dir ? "📁 " + name : "📄 " + name;
+      console.log("Archivos en JAR:", names.length);
 
-      if (!entry.dir) {
-        div.style.cursor = "pointer";
-        div.onclick = async () => {
-          const data = await entry.async("uint8array");
+      tree.innerHTML = "";
 
-          if (name.endsWith(".class")) {
-            view.textContent = mostrarStrings(data);
-          } else {
-            view.textContent = new TextDecoder().decode(data);
-          }
-        };
+      for (const name of names) {
+        const entry = zip.files[name];
+
+        const div = document.createElement("div");
+        div.textContent = entry.dir ? "📁 " + name : "📄 " + name;
+
+        if (!entry.dir) {
+          div.style.cursor = "pointer";
+          div.onclick = async () => {
+            const data = await entry.async("uint8array");
+
+            if (name.endsWith(".class")) {
+              view.textContent = mostrarStrings(data);
+            } else {
+              view.textContent = new TextDecoder().decode(data);
+            }
+          };
+        }
+
+        tree.appendChild(div);
       }
 
-      tree.appendChild(div);
+    } catch (err) {
+      console.error("ERROR leyendo JAR:", err);
+      tree.textContent = "❌ Error leyendo JAR (ver consola)";
     }
-
-    console.log("Renderizados:", count);
-
-    if (count === 0) {
-      tree.innerHTML = "⚠️ El JAR no contiene archivos visibles";
-    }
-
-  } catch (e) {
-    console.error("ERROR leyendo JAR:", e);
-    tree.innerHTML = "❌ Error leyendo el JAR (mirá la consola)";
-  }
+  });
 });
 
 function mostrarStrings(bytes) {
   let out = "CLASS FILE\n\nStrings detectados:\n\n";
-  let s = "";
+  let temp = "";
 
   for (const b of bytes) {
     if (b >= 32 && b <= 126) {
-      s += String.fromCharCode(b);
+      temp += String.fromCharCode(b);
     } else {
-      if (s.length > 4) out += s + "\n";
-      s = "";
+      if (temp.length > 4) out += temp + "\n";
+      temp = "";
     }
   }
+
   return out;
 }
