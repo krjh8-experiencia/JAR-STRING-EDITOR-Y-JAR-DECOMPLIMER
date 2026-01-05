@@ -6,15 +6,22 @@ document.addEventListener("DOMContentLoaded", () => {
   const editor = document.getElementById("editor");
   const downloadBtn = document.getElementById("downloadBtn");
 
+  if (!fileInput) {
+    console.error("❌ NO EXISTE el input con id='fileInput'");
+    return;
+  }
+
   let zip = null;
   let currentPath = null;
 
-  function makeTree(paths) {
+  // Convertir paths planos a árbol jerárquico
+  function makeTreeFromZip(zip) {
     const root = {};
-    paths.forEach(path => {
+    Object.keys(zip.files).forEach(path => {
       const parts = path.split("/");
       let node = root;
       parts.forEach((part, idx) => {
+        if (!part) return; // saltar vacíos
         if (!node[part]) {
           node[part] = {
             _children: {},
@@ -28,6 +35,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return root;
   }
 
+  // Renderizar árbol recursivamente
   function renderTree(node, parentEl) {
     Object.keys(node).forEach(key => {
       if (["_children", "_fullPath", "_isDir"].includes(key)) return;
@@ -35,7 +43,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const div = document.createElement("div");
       div.style.paddingLeft = "10px";
-      div.style.cursor = "pointer";
       div.dataset.expanded = false;
 
       if (data._isDir) {
@@ -45,26 +52,27 @@ document.addEventListener("DOMContentLoaded", () => {
         const childrenContainer = document.createElement("div");
         childrenContainer.style.display = "none";
         childrenContainer.style.paddingLeft = "15px";
-        parentEl.appendChild(div);
-        parentEl.appendChild(childrenContainer);
 
         div.onclick = () => {
-          const expanded = div.dataset.expanded === "true";
+          const expanded = childrenContainer.style.display === "block";
           childrenContainer.style.display = expanded ? "none" : "block";
-          div.dataset.expanded = !expanded;
         };
+
+        parentEl.appendChild(div);
+        parentEl.appendChild(childrenContainer);
 
         renderTree(data._children, childrenContainer);
       } else {
         div.textContent = "📄 " + key;
         div.className = "file";
         if (key.endsWith(".class")) div.style.fontSize = "12px";
+
         div.onclick = async () => {
           currentPath = data._fullPath;
           const entry = zip.files[currentPath];
           if (!entry) return;
 
-          if (currentPath.endsWith(".class")) {
+          if (key.endsWith(".class")) {
             const dataArr = await entry.async("uint8array");
             let strings = [];
             let cur = "";
@@ -105,6 +113,7 @@ ${strings.slice(0, 50).join("\n")}
     editor.value = "";
     currentPath = null;
 
+    // Ordenar: todo menos .yml primero
     const paths = Object.keys(zip.files).sort((a, b) => {
       const aYml = a.endsWith(".yml") || a.endsWith(".yaml");
       const bYml = b.endsWith(".yml") || b.endsWith(".yaml");
@@ -113,10 +122,10 @@ ${strings.slice(0, 50).join("\n")}
       return a.localeCompare(b);
     });
 
-    const treeData = makeTree(paths);
+    const treeData = makeTreeFromZip(zip);
     renderTree(treeData, tree);
 
-    console.log("🌳 Árbol jerárquico con iconos generado");
+    console.log("🌳 Árbol jerárquico generado con iconos");
   });
 
   downloadBtn.addEventListener("click", async () => {
