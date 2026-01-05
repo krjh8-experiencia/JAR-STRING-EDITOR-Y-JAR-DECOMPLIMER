@@ -17,30 +17,36 @@ h1 {
   gap: 10px;
 }
 
+/* Árbol de archivos a la izquierda */
 #tree {
-  flex: 0 0 300px;  /* árbol más pequeño a la izquierda */
+  flex: 0 0 300px;  /* ancho fijo */
   background: #2e2e2e;
   padding: 10px;
   overflow-y: auto;
   border-right: 2px solid #555;
+  height: 100%;
 }
 
+/* Cada archivo clickeable */
 .file {
   cursor: pointer;
-  padding: 2px 5px;
+  padding: 4px 6px;
 }
 
 .file:hover {
   background: #444;
 }
 
-textarea#editor {
-  flex: 1;           /* ocupa el resto del espacio */
+/* Editor / Lectura a la derecha */
+#editor {
+  flex: 1;             /* ocupa el resto del espacio */
   background: #1e1e1e;
   color: #fff;
   border: 1px solid #555;
   resize: none;
-  padding: 10px;
+  padding: 15px;
   overflow-y: auto;
-  font-size: 14px;
+  font-size: 16px;     /* texto más grande */
+  line-height: 1.4;
+  height: 100%;
 }
