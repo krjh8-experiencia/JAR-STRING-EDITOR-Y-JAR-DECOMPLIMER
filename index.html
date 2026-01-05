@@ -1,23 +1,22 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>JAR Plugin Editor</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<title>Jar Viewer & Editor</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
+<h1>Jar Viewer & Editor</h1>
 
-<header>
-  <input type="file" id="fileInput" accept=".jar,.zip">
-  <button id="downloadBtn">Descargar Plugin Modificado</button>
-</header>
+<input type="file" id="fileInput" accept=".jar,.zip">
+<button id="downloadBtn">Descargar Plugin Modificado</button>
 
-<div class="layout">
+<div id="container">
   <div id="tree"></div>
-  <textarea id="editor" placeholder="Seleccioná un archivo del árbol"></textarea>
+  <textarea id="editor" placeholder="Selecciona un archivo para ver / editar"></textarea>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-<script src="main.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
