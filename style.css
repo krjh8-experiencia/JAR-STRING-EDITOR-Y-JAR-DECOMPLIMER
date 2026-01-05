@@ -23,13 +23,13 @@ h1 {
 #container {
   display: flex;
   flex-direction: row;      /* horizontal */
-  height: calc(100% - 60px); /* restando h1 + topbar */
+  height: calc(100% - 60px); /* alto disponible */
   gap: 10px;
 }
 
 /* Árbol de archivos */
 #tree {
-  flex: 0 0 300px;   /* ancho fijo */
+  flex: 0 0 300px;           /* ancho fijo a la izquierda */
   background: #2e2e2e;
   padding: 10px;
   overflow-y: auto;
@@ -37,7 +37,7 @@ h1 {
   height: 100%;
 }
 
-/* Cada archivo */
+/* Cada archivo clickeable */
 .file {
   cursor: pointer;
   padding: 4px 6px;
@@ -47,9 +47,9 @@ h1 {
   background: #444;
 }
 
-/* Editor / lectura */
+/* Editor / lectura a la derecha */
 #editor {
-  flex: 1;           /* ocupa todo el ancho restante */
+  flex: 1;                   /* ocupa todo el ancho restante */
   background: #1e1e1e;
   color: #fff;
   border: 1px solid #555;
