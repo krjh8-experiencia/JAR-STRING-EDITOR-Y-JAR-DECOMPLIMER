@@ -1,21 +1,35 @@
 let zip;
 let files = {};
-let currentClass = null;
-let currentPath = null;
 
 const tree = document.getElementById("tree");
 const editor = document.getElementById("editor");
 const title = document.getElementById("title");
 
 document.getElementById("jarInput").addEventListener("change", async e => {
-  zip = await JSZip.loadAsync(e.target.files[0]);
-  files = {};
-  tree.innerHTML = "";
+  const file = e.target.files[0];
+  if (!file) return;
 
-  for (const p in zip.files) {
-    if (!zip.files[p].dir) {
-      files[p] = await zip.files[p].async("uint8array");
+  // 🔴 PASO CLAVE: leer como ArrayBuffer
+  const buffer = await file.arrayBuffer();
+  zip = await JSZip.loadAsync(buffer);
+
+  files = {};
+  tree.innerHTML = "Cargando archivos...";
+
+  // 🔴 PASO CLAVE: esperar TODOS los archivos
+  const entries = Object.entries(zip.files);
+
+  for (const [path, entry] of entries) {
+    if (!entry.dir) {
+      files[path] = await entry.async("uint8array");
     }
+  }
+
+  console.log("Archivos cargados:", Object.keys(files));
+
+  if (Object.keys(files).length === 0) {
+    tree.innerHTML = "❌ El JAR no contiene archivos";
+    return;
   }
 
   buildTree();
@@ -27,7 +41,7 @@ function buildTree() {
   Object.keys(files).forEach(path => {
     let cur = root;
     path.split("/").forEach(part => {
-      cur[part] ??= {};
+      if (!cur[part]) cur[part] = {};
       cur = cur[part];
     });
   });
@@ -41,15 +55,18 @@ function renderNode(node, parent, base) {
     const path = base ? base + "/" + key : key;
     const div = document.createElement("div");
 
-    if (Object.keys(node[key]).length) {
+    if (Object.keys(node[key]).length > 0) {
       div.textContent = "📁 " + key;
       div.className = "folder";
 
       const children = document.createElement("div");
-      children.className = "hidden";
       children.style.paddingLeft = "15px";
+      children.style.display = "none";
 
-      div.onclick = () => children.classList.toggle("hidden");
+      div.onclick = () => {
+        children.style.display =
+          children.style.display === "none" ? "block" : "none";
+      };
 
       parent.appendChild(div);
       parent.appendChild(children);
@@ -65,78 +82,11 @@ function renderNode(node, parent, base) {
 }
 
 function openFile(path) {
-  currentPath = path;
   title.textContent = path;
 
   if (path.endsWith(".class")) {
-    const reader = new JavaClassTools.JavaClassFileReader();
-    currentClass = reader.read(files[path].buffer);
-
-    const lines = [];
-    currentClass.constant_pool.forEach((c, i) => {
-      if (c?.tag === 1) {
-        lines.push(i + "|" + c.bytes);
-      }
-    });
-
-    editor.value = lines.join("\n");
+    editor.value = "Archivo .class cargado correctamente\n\nTamaño: " + files[path].length + " bytes";
   } else {
     editor.value = new TextDecoder().decode(files[path]);
-    currentClass = null;
   }
 }
-
-document.getElementById("save").onclick = () => {
-  if (currentClass) {
-    editor.value.split("\n").forEach(line => {
-      const [i, val] = line.split("|");
-      const idx = parseInt(i);
-      if (!isNaN(idx) && currentClass.constant_pool[idx]) {
-        currentClass.constant_pool[idx].bytes = val;
-      }
-    });
-
-    const writer = new JavaClassTools.JavaClassFileWriter();
-    files[currentPath] = new Uint8Array(writer.write(currentClass));
-    alert("✔ .class parcheado");
-  } else {
-    files[currentPath] = new TextEncoder().encode(editor.value);
-    alert("✔ archivo guardado");
-  }
-};
-
-document.getElementById("patchAll").onclick = () => {
-  const find = prompt("Buscar string");
-  const replace = prompt("Reemplazar por");
-
-  if (!find) return;
-
-  Object.keys(files).forEach(p => {
-    if (!p.endsWith(".class")) return;
-
-    const reader = new JavaClassTools.JavaClassFileReader();
-    const cls = reader.read(files[p].buffer);
-
-    cls.constant_pool.forEach(c => {
-      if (c?.tag === 1 && c.bytes.includes(find)) {
-        c.bytes = c.bytes.replaceAll(find, replace);
-      }
-    });
-
-    const writer = new JavaClassTools.JavaClassFileWriter();
-    files[p] = new Uint8Array(writer.write(cls));
-  });
-
-  alert("✔ parche global aplicado");
-};
-
-document.getElementById("download").onclick = async () => {
-  const out = new JSZip();
-  for (const p in files) out.file(p, files[p]);
-
-  const blob = await out.generateAsync({ type: "blob" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "plugin_modificado.jar";
-  a.click();
-};
