@@ -6,13 +6,88 @@ document.addEventListener("DOMContentLoaded", () => {
   const editor = document.getElementById("editor");
   const downloadBtn = document.getElementById("downloadBtn");
 
-  if (!fileInput) {
-    console.error("❌ NO EXISTE el input con id='fileInput'");
-    return;
-  }
-
   let zip = null;
   let currentPath = null;
+
+  // Crear nodo del árbol
+  function createNode(name, isDir) {
+    const div = document.createElement("div");
+    div.textContent = name;
+    div.className = isDir ? "folder" : "file";
+    if (!isDir && name.endsWith(".class")) div.style.fontSize = "12px";
+    div.style.paddingLeft = "10px";
+    div.dataset.expanded = false;
+    return div;
+  }
+
+  // Construir árbol jerárquico recursivo
+  function buildTree(paths) {
+    const root = {};
+    paths.forEach(p => {
+      const parts = p.split("/");
+      let node = root;
+      parts.forEach((part, idx) => {
+        if (!node[part]) node[part] = { _children: {}, _fullPath: parts.slice(0, idx+1).join("/"), _isDir: idx < parts.length-1 };
+        node = node[part]._children;
+      });
+    });
+    return root;
+  }
+
+  function renderTree(node, parentElement) {
+    Object.keys(node).forEach(key => {
+      if (key === "_children" || key === "_isDir" || key === "_fullPath") return;
+      const data = node[key];
+      const div = createNode(key, data._isDir);
+      parentElement.appendChild(div);
+
+      if (data._isDir) {
+        const childrenContainer = document.createElement("div");
+        childrenContainer.style.display = "none";
+        childrenContainer.style.paddingLeft = "15px";
+        parentElement.appendChild(childrenContainer);
+
+        div.onclick = () => {
+          const expanded = div.dataset.expanded === "true";
+          childrenContainer.style.display = expanded ? "none" : "block";
+          div.dataset.expanded = !expanded;
+        };
+
+        renderTree(data._children, childrenContainer);
+      } else {
+        div.onclick = async () => {
+          currentPath = data._fullPath;
+          const entry = zip.files[currentPath];
+          if (!entry) return;
+
+          if (currentPath.endsWith(".class")) {
+            const dataArr = await entry.async("uint8array");
+            let strings = [];
+            let cur = "";
+            for (let b of dataArr) {
+              if (b >= 32 && b <= 126) cur += String.fromCharCode(b);
+              else {
+                if(cur.length>=4) strings.push(cur);
+                cur="";
+              }
+            }
+            if(cur.length>=4) strings.push(cur);
+            editor.value =
+`// Decompiled (.class) — READ ONLY
+
+Strings detected (primeros 50):
+${strings.slice(0,50).join("\n")}
+`;
+            editor.disabled = true;
+          } else {
+            const text = await entry.async("string");
+            editor.value = text;
+            editor.disabled = false;
+          }
+        };
+      }
+    });
+  }
 
   fileInput.addEventListener("change", async () => {
     const file = fileInput.files[0];
@@ -25,7 +100,6 @@ document.addEventListener("DOMContentLoaded", () => {
     editor.value = "";
     currentPath = null;
 
-    // ---------------------------
     // Orden: todo menos .yml / .yaml primero, luego yml
     const paths = Object.keys(zip.files).sort((a,b)=>{
       const aYml = a.endsWith(".yml") || a.endsWith(".yaml");
@@ -35,75 +109,10 @@ document.addEventListener("DOMContentLoaded", () => {
       return a.localeCompare(b);
     });
 
-    paths.forEach(path => {
-      const div = document.createElement("div");
-      div.className = "file";
-      div.textContent = path;
+    const treeData = buildTree(paths);
+    renderTree(treeData, tree);
 
-      div.onclick = async () => {
-        const entry = zip.files[path];
-        currentPath = path;
-
-        if (entry.dir) {
-          editor.value = "// Carpeta";
-          editor.disabled = true;
-          return;
-        }
-
-        // ------------------- .class pseudo decompiled
-        if (path.endsWith(".class")) {
-          const data = await entry.async("uint8array");
-
-          // Extraer strings legibles
-          let strings = [];
-          let cur = "";
-          for (let b of data) {
-            if (b >= 32 && b <= 126) cur += String.fromCharCode(b);
-            else {
-              if(cur.length>=4) strings.push(cur);
-              cur="";
-            }
-          }
-          if(cur.length>=4) strings.push(cur);
-
-          const readU16 = i => (data[i]<<8)|data[i+1];
-          const major = readU16(6);
-
-          const className = strings.find(s => s.includes("/") && !s.includes("(")) || "UnknownClass";
-          const methods = strings.filter(s =>
-            /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(s) &&
-            !["Code","LineNumberTable","SourceFile"].includes(s)
-          );
-
-          editor.value =
-`// Decompiled (.class) — READ ONLY
-
-Java version (major): ${major}
-
-Class:
-${className.replace(/\//g, ".")}
-
-Methods detected:
-${[...new Set(methods)].slice(0,30).map(m=>"  - "+m).join("\n")}
-
-Strings:
-${strings.slice(0,50).join("\n")}
-`;
-
-          editor.disabled = true;
-          return;
-        }
-
-        // ------------------- editable
-        const text = await entry.async("string");
-        editor.value = text;
-        editor.disabled = false;
-      };
-
-      tree.appendChild(div);
-    });
-
-    console.log("🌳 Árbol generado");
+    console.log("🌳 Árbol jerárquico generado");
   });
 
   downloadBtn.addEventListener("click", async () => {
