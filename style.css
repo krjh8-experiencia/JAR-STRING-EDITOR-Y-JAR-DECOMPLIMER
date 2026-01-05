@@ -1,43 +1,44 @@
 body {
-  margin: 0;
-  background: #0d1117;
-  color: #c9d1d9;
   font-family: monospace;
+  background: #1e1e1e;
+  color: #eee;
+  margin: 0;
+  padding: 10px;
 }
 
-header {
-  padding: 10px;
-  background: #161b22;
+h1 {
+  text-align: center;
+  color: #ffcc00;
+}
+
+#container {
   display: flex;
+  height: 80vh;
   gap: 10px;
 }
 
-.layout {
-  display: flex;
-  height: calc(100vh - 50px);
-}
-
 #tree {
-  width: 320px;
-  background: #161b22;
-  overflow-y: auto;
+  flex: 1;
+  background: #2e2e2e;
   padding: 10px;
+  overflow-y: auto;
 }
 
 .file {
   cursor: pointer;
-  padding: 3px;
+  padding: 2px 5px;
 }
 
 .file:hover {
-  background: #30363d;
+  background: #444;
 }
 
-#editor {
-  flex: 1;
-  background: #0d1117;
-  color: #c9d1d9;
-  border: none;
-  padding: 10px;
+textarea#editor {
+  flex: 2;
+  background: #1e1e1e;
+  color: #fff;
+  border: 1px solid #555;
   resize: none;
+  padding: 10px;
+  overflow-y: auto;
 }
