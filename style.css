@@ -1,23 +1,27 @@
-body {
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
   font-family: monospace;
   background: #1e1e1e;
   color: #eee;
-  margin: 0;
-  padding: 10px;
 }
 
 h1 {
   text-align: center;
   color: #ffcc00;
+  margin: 10px 0;
 }
 
 #container {
   display: flex;
-  height: 80vh;
+  height: calc(100% - 60px); /* altura total de la pantalla menos el h1 y botones */
   gap: 10px;
+  padding: 10px;
+  box-sizing: border-box;
 }
 
-/* Árbol de archivos a la izquierda */
+/* Árbol a la izquierda */
 #tree {
   flex: 0 0 300px;  /* ancho fijo */
   background: #2e2e2e;
@@ -27,7 +31,7 @@ h1 {
   height: 100%;
 }
 
-/* Cada archivo clickeable */
+/* Archivos en el árbol */
 .file {
   cursor: pointer;
   padding: 4px 6px;
@@ -37,16 +41,17 @@ h1 {
   background: #444;
 }
 
-/* Editor / Lectura a la derecha */
+/* Editor grande a la derecha */
 #editor {
-  flex: 1;             /* ocupa el resto del espacio */
+  flex: 1;           /* ocupa todo el ancho restante */
   background: #1e1e1e;
   color: #fff;
   border: 1px solid #555;
   resize: none;
   padding: 15px;
   overflow-y: auto;
-  font-size: 16px;     /* texto más grande */
+  font-size: 16px;
   line-height: 1.4;
-  height: 100%;
+  height: 100%;      /* OJO: ocupa toda la altura del contenedor */
+  box-sizing: border-box;
 }
